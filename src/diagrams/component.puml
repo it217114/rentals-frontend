@@ -1,0 +1,46 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "Frontend (React TS + Tailwind)" {
+  [Search Page]
+  [Auth Context]
+  [Owner Dashboard]
+  [Admin Pending]
+}
+
+package "Backend (Spring Boot)" {
+  [AuthController]
+  [PropertyController]
+  [ApplicationController]
+
+  [CustomUserDetailsService]
+  [JwtService]
+  [PropertyService]
+  [ApplicationService]
+
+  [UserRepository]
+  [PropertyRepository]
+  [ApplicationRepository]
+}
+
+database "MySQL 8" as DB
+
+[Search Page] --> [PropertyController] : REST/JSON
+[Auth Context] --> [AuthController] : login/register (JWT)
+[Owner Dashboard] --> [PropertyController]
+[Owner Dashboard] --> [ApplicationController]
+[Admin Pending] --> [PropertyController]
+
+[AuthController] --> [CustomUserDetailsService]
+[AuthController] --> [JwtService]
+[PropertyController] --> [PropertyService]
+[ApplicationController] --> [ApplicationService]
+
+[PropertyService] --> [PropertyRepository]
+[ApplicationService] --> [ApplicationRepository]
+[CustomUserDetailsService] --> [UserRepository]
+
+[UserRepository] --> DB
+[PropertyRepository] --> DB
+[ApplicationRepository] --> DB
+@enduml

@@ -1,0 +1,16 @@
+@startuml
+start
+:Tenant searches properties;
+:Selects approved property;
+:Submits application (message);
+:status = SUBMITTED;
+:Owner reviews application;
+if (Approve?) then (yes)
+  :status = APPROVED;
+  :Notify tenant;
+else (no)
+  :status = REJECTED;
+  :Notify tenant;
+endif
+stop
+@enduml

@@ -1,0 +1,28 @@
+@startuml
+skinparam componentStyle rectangle
+
+node "Client Browser" as Browser
+
+node "Web Server\n(Dev: Vite / Prod: Nginx)" as Web {
+  artifact "React App (static assets)" as FE
+}
+
+node "App Server\n(Spring Boot + Tomcat embedded)" as BE {
+  artifact "rental-backend.jar" as JAR
+}
+
+node "DB Server\n(MySQL 8 Docker)" as DB {
+  database "rentals" as RentalsDB
+}
+
+Browser --> FE : HTTPS
+FE --> BE : HTTPS / REST + JWT
+BE --> RentalsDB : JDBC (port 3306)
+
+note right of BE
+Docker Compose (dev):
+- rentals-mysql
+- backend (local run)
+- frontend (vite)
+end note
+@enduml

@@ -1,0 +1,73 @@
+@startuml
+hide circle
+skinparam classAttributeIconSize 0
+
+class User {
+  +id: Long
+  +email: String
+  +password: String
+  +fullName: String
+  +enabled: boolean
+  +verified: boolean
+  +createdAt: Timestamp
+}
+
+enum Role {
+  ADMIN
+  OWNER
+  TENANT
+}
+
+enum PropertyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  STUDIO
+}
+
+class Property {
+  +id: Long
+  +title: String
+  +type: PropertyType
+  +city: String
+  +address: String
+  +price: BigDecimal
+  +bedrooms: int
+  +bathrooms: int
+  +area: double
+  +status: PropertyStatus
+  +description: Text
+  +amenities: Text
+  +createdAt: Timestamp
+}
+
+class PropertyImage {
+  +id: Long
+  +url: String
+  +sortOrder: int
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+class RentalApplication {
+  +id: Long
+  +message: String
+  +status: ApplicationStatus
+  +createdAt: Timestamp
+}
+
+User "1" -- "0..*" Role : roles
+User "1" -- "0..*" Property : owner
+Property "1" -- "0..*" PropertyImage : images
+User "1" -- "0..*" RentalApplication : tenant
+Property "1" -- "0..*" RentalApplication : applications
+@enduml

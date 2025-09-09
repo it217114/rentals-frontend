@@ -1,0 +1,20 @@
+@startuml
+actor User as U
+participant "React App" as FE
+participant "AuthController" as AC
+participant "CustomUserDetailsService" as Svc
+database "MySQL" as DB
+participant "JwtService" as JWT
+
+U -> FE : enter email/password
+FE -> AC : POST /auth/login {email, password}
+AC -> Svc : loadUserByUsername(email)
+Svc -> DB : SELECT * FROM users WHERE email=?
+DB --> Svc : user + roles + passwordHash
+Svc --> AC : UserDetails
+AC -> AC : verify password (BCrypt)
+AC -> JWT : generateToken(userId, roles)
+JWT --> AC : jwtToken
+AC --> FE : 200 {token}
+FE -> FE : store token (localStorage) + set Authorization header
+@enduml

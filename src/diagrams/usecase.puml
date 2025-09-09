@@ -1,0 +1,37 @@
+@startuml
+left to right direction
+actor Admin
+actor Owner
+actor Tenant
+
+usecase (Register/Login) as UC_Auth
+usecase (Create Property) as UC_Create
+usecase (Edit/Delete Property) as UC_Edit
+usecase (Submit Listing) as UC_Submit
+usecase (Approve/Reject Listing) as UC_Approve
+usecase (Search Properties) as UC_Search
+usecase (Apply for Rental) as UC_Apply
+usecase (Review Applications) as UC_Review
+usecase (Approve/Reject Application) as UC_AppDecision
+
+Owner --> UC_Auth
+Tenant --> UC_Auth
+Admin --> UC_Auth
+
+Owner --> UC_Create
+Owner --> UC_Edit
+Owner --> UC_Submit
+Admin --> UC_Approve
+
+Tenant --> UC_Search
+Tenant --> UC_Apply
+
+Owner --> UC_Review
+Owner --> UC_AppDecision
+
+UC_Create .> UC_Auth : <<include>>
+UC_Submit .> UC_Auth : <<include>>
+UC_Apply .> UC_Auth : <<include>>
+UC_Approve .> UC_Auth : <<include>>
+UC_AppDecision .> UC_Review : <<extend>>
+@enduml

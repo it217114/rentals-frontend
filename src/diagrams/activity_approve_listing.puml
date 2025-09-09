@@ -1,0 +1,14 @@
+@startuml
+start
+:Owner submits property;
+:status = PENDING;
+:Admin reviews listing;
+if (Approve?) then (yes)
+  :status = APPROVED;
+  :Visible in search results;
+else (no)
+  :status = REJECTED;
+  :Notify owner;
+endif
+stop
+@enduml
