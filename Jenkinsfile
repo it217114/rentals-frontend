@@ -3,27 +3,31 @@ pipeline {
 
   environment {
     IMAGE = "it217114/rentals-frontend"
-    GIT_SHORT = ""
   }
 
   stages {
     stage('Checkout') {
       steps {
         checkout scm
-        script { GIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim() }
+        script {
+          env.GIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+          echo "GIT_SHORT=${env.GIT_SHORT}"
+        }
       }
     }
 
-    stage('Build dist via docker run (Node)') {
+    // Optional γρήγορο verify
+    stage('Node verify (optional)') {
       steps {
-        sh '''
-          set -eux
-          docker run --rm -v "$PWD":/app -w /app node:20-alpine sh -lc "
-            npm ci
-            npm run build
-            ls -la dist || true
-          "
-        '''
+        script {
+          docker.image('node:20-alpine').inside {
+            sh '''
+              set -eux
+              npm ci
+              npm run build
+            '''
+          }
+        }
       }
     }
 
@@ -31,21 +35,26 @@ pipeline {
       steps {
         sh '''
           set -eux
-          docker build -t '"${IMAGE}:latest"' -t '"${IMAGE}:${GIT_SHORT}"' .
+          docker build \
+            -t ${IMAGE}:latest \
+            -t ${IMAGE}:${GIT_SHORT} \
+            .
         '''
       }
     }
 
     stage('Docker Push') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-it217114',
-                       usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-it217114',
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
+        )]) {
           sh '''
             set -eux
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker push '"${IMAGE}:latest"'
-            docker push '"${IMAGE}:${GIT_SHORT}"'
-            docker logout || true
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+            docker push ${IMAGE}:latest
+            docker push ${IMAGE}:${GIT_SHORT}
           '''
         }
       }
@@ -53,6 +62,7 @@ pipeline {
   }
 
   post {
+    always { sh 'docker logout || true' }
     success { echo "✅ Pushed ${IMAGE}:latest and :${GIT_SHORT}" }
   }
 }
