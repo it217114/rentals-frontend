@@ -7,17 +7,10 @@ pipeline {
 
   stages {
     stage('Checkout') {
-      steps {
-        checkout scm
-        script {
-          env.GIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-          echo "GIT_SHORT=${env.GIT_SHORT}"
-        }
-      }
+      steps { checkout scm }
     }
 
-    // Optional γρήγορο verify
-    stage('Node verify (optional)') {
+    stage('Node build (inside Docker)') {
       steps {
         script {
           docker.image('node:20-alpine').inside {
@@ -33,13 +26,14 @@ pipeline {
 
     stage('Docker Build') {
       steps {
-        sh '''
-          set -eux
-          docker build \
-            -t ${IMAGE}:latest \
-            -t ${IMAGE}:${GIT_SHORT} \
-            .
-        '''
+        script {
+          def GIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+          sh """
+            set -eux
+            docker build -t ${IMAGE}:latest -t ${IMAGE}:${GIT_SHORT} .
+          """
+          env.GIT_SHORT = GIT_SHORT
+        }
       }
     }
 
@@ -52,9 +46,10 @@ pipeline {
         )]) {
           sh '''
             set -eux
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker push ${IMAGE}:latest
-            docker push ${IMAGE}:${GIT_SHORT}
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push '"${IMAGE}:latest"'
+            docker push '"${IMAGE}:${GIT_SHORT}"'
+            docker logout || true
           '''
         }
       }
@@ -62,7 +57,6 @@ pipeline {
   }
 
   post {
-    always { sh 'docker logout || true' }
-    success { echo "✅ Pushed ${IMAGE}:latest and :${GIT_SHORT}" }
+    success { echo "✅ Pushed ${IMAGE}:latest and :${env.GIT_SHORT}" }
   }
 }
