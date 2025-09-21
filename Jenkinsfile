@@ -3,49 +3,49 @@ pipeline {
 
   environment {
     IMAGE = "it217114/rentals-frontend"
-    GIT_SHORT = "${env.GIT_COMMIT?.take(7)}"
+    GIT_SHORT = ""
   }
 
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+        script { GIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim() }
+      }
     }
 
-    // Αν το Dockerfile σου κάνει ήδη multi-stage (node build -> nginx),
-    // αυτό το στάδιο μπορεί να παραλειφθεί. Το κρατάω για γρήγορο lint.
-    stage('Node verify (optional)') {
+    stage('Build dist via docker run (Node)') {
       steps {
-        script {
-          docker.image('node:20-alpine').inside {
-            sh 'npm ci'
-            sh 'npm run build'
-          }
-        }
+        sh '''
+          set -eux
+          docker run --rm -v "$PWD":/app -w /app node:20-alpine sh -lc "
+            npm ci
+            npm run build
+            ls -la dist || true
+          "
+        '''
       }
     }
 
     stage('Docker Build') {
       steps {
-        sh """
-          docker build \
-            -t ${IMAGE}:latest \
-            -t ${IMAGE}:${GIT_SHORT} \
-            .
-        """
+        sh '''
+          set -eux
+          docker build -t '"${IMAGE}:latest"' -t '"${IMAGE}:${GIT_SHORT}"' .
+        '''
       }
     }
 
     stage('Docker Push') {
       steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-it217114',
-          usernameVariable: 'DOCKER_USER',
-          passwordVariable: 'DOCKER_PASS'
-        )]) {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-it217114',
+                       usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
+            set -eux
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
             docker push '"${IMAGE}:latest"'
             docker push '"${IMAGE}:${GIT_SHORT}"'
+            docker logout || true
           '''
         }
       }
@@ -54,6 +54,5 @@ pipeline {
 
   post {
     success { echo "✅ Pushed ${IMAGE}:latest and :${GIT_SHORT}" }
-    always  { sh 'docker logout || true' }
   }
 }
